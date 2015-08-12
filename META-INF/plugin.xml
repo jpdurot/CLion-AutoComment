@@ -38,9 +38,9 @@
 
   <actions>
     <!-- Add your actions here -->
-    <action id="AutoCommentId" class="AutoComment" text="Auto Comment">
+    <action id="AutoCommentId" class="actions.AutoComment" text="Auto Comment">
       <keyboard-shortcut keymap="$default" first-keystroke="shift ctrl D"/>
-        <add-to-group group-id="ToolsMenu" anchor="last" />
+        <add-to-group group-id="EditorPopupMenu" anchor="last" />
     </action>
     <!--<group id="jpPlugin" popup="true" text="JP Plugin">
         <reference ref="AutoCommentId" />

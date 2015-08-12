@@ -1,21 +1,27 @@
+package model;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-/**
- * Created by jp on 11/08/15.
- */
 public class CommentsBlock {
     private ArrayList<String> _description;
 
-        private ArrayList<ParamInfo> _params;
+        private ArrayList<ParameterInfo> _params;
+
+    public ArrayList<AbstractMap.SimpleEntry<String, String>> get_customInfos() {
+        return _customInfos;
+    }
+
+    private ArrayList<AbstractMap.SimpleEntry<String, String>> _customInfos;
     private String _return;
 
-    CommentsBlock()
+    public CommentsBlock()
     {
         _description = new ArrayList<String>();
-        _params = new ArrayList<ParamInfo>();
+        _params = new ArrayList<ParameterInfo>();
+        _customInfos = new ArrayList<AbstractMap.SimpleEntry<String, String>>();
     }
 
     public ArrayList<String> getDescription()
@@ -23,13 +29,13 @@ public class CommentsBlock {
         return _description;
     }
 
-    public ArrayList<ParamInfo> getParameters() {
+    public ArrayList<ParameterInfo> getParameters() {
         return _params;
     }
 
     public void addParam(String name, String description)
     {
-        _params.add(new ParamInfo(name, description));
+        _params.add(new ParameterInfo(name, description));
     }
 
     public void setReturnDescription(String description)
@@ -38,7 +44,7 @@ public class CommentsBlock {
     }
 
     @Nullable
-    public ParamInfo getParamInfo(@NotNull String name)
+    public ParameterInfo getParameterInfo(@NotNull String name)
     {
         for (int i=0;i< _params.size(); i++)
         {
@@ -54,23 +60,9 @@ public class CommentsBlock {
     {
         _description.add(line);
     }
-}
 
-class ParamInfo {
-    public String get_name() {
-        return _name;
-    }
-
-    public String get_description() {
-        return _description;
-    }
-
-    private String _name;
-    private String _description;
-
-    ParamInfo(@NotNull String name, @NotNull String description)
-    {
-        _description = description;
-        _name = name;
+    public void addCustomParameter(String name, String value) {
+        _customInfos.add(new AbstractMap.SimpleEntry<String, String>(name, value));
     }
 }
+

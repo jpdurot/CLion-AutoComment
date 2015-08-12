@@ -1,30 +1,24 @@
-import com.intellij.lang.Language;
-import com.intellij.lang.PsiBuilderFactory;
+package actions;
+
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
-import com.intellij.openapi.application.RunResult;
 import com.intellij.openapi.command.CommandProcessor;
-import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.fileTypes.LanguageFileType;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.psi.*;
-import com.intellij.psi.impl.source.tree.LeafPsiElement;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.util.Icons;
-import com.jetbrains.cidr.lang.OCLanguage;
 import com.jetbrains.cidr.lang.parser.OCTokenTypes;
 import com.jetbrains.cidr.lang.psi.*;
-import com.jetbrains.cidr.lang.settings.OCCodeStyleSettings;
+import model.CommentsBlock;
+import model.ParameterInfo;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -70,20 +64,28 @@ public class AutoComment extends AnAction {
                     newBlock.addDescriptionLine(String.format("<< %s description >>", methodName));
                 }
 
+                if (existingBlock != null && existingBlock.get_customInfos().size() > 0)
+                {
+                    for (int i=0; i<existingBlock.get_customInfos().size();i++)
+                    {
+                        newBlock.addCustomParameter(existingBlock.get_customInfos().get(i).getKey(), existingBlock.get_customInfos().get(i).getValue());
+                    }
+                }
+
                 List<OCParameterDeclaration> parameters = PsiTreeUtil.getChildrenOfTypeAsList(parameterList, OCParameterDeclaration.class);
                 for (int i = parameters.size() -1; i >=0; i--) {
                     OCDeclarator decl = PsiTreeUtil.getChildOfType(parameters.get(i), OCDeclarator.class);
                     String parameterName = getIdentifierValue(decl);
-                    ParamInfo paramInfo = null;
+                    ParameterInfo ParameterInfo = null;
                     if (existingBlock != null)
                     {
-                        paramInfo = existingBlock.getParamInfo(parameterName);
+                        ParameterInfo = existingBlock.getParameterInfo(parameterName);
                     }
-                    if (paramInfo == null)
+                    if (ParameterInfo == null)
                     {
-                        paramInfo = new ParamInfo(parameterName, "");
+                        ParameterInfo = new ParameterInfo(parameterName, "");
                     }
-                    newBlock.addParam(paramInfo.get_name(), paramInfo.get_description());
+                    newBlock.addParam(ParameterInfo.get_name(), ParameterInfo.get_description());
                 }
 
                 String commentsString = convertCommentsBlockToString(newBlock);
@@ -119,6 +121,15 @@ public class AutoComment extends AnAction {
             builder.append(newBlock.getParameters().get(i).get_name());
             builder.append("\t");
             builder.append(newBlock.getParameters().get(i).get_description());
+            builder.append("\n");
+        }
+
+        for(int i=0; i< newBlock.get_customInfos().size();i++)
+        {
+            builder.append(" * @");
+            builder.append(newBlock.get_customInfos().get(i).getKey());
+            builder.append("\t");
+            builder.append(newBlock.get_customInfos().get(i).getValue());
             builder.append("\n");
         }
         builder.append("*/\n");
@@ -163,18 +174,21 @@ public class AutoComment extends AnAction {
                     {
                         isDescription = false;
                         String value = matchResult.group(2).trim();
-                        MatchResult result = paramRegex.matcher(value).toMatchResult();
-                        int space = value.indexOf("\t");
-                        if (space > -1)
-                        {
+                        Matcher paramMatcher = paramRegex.matcher(value);
+                        if (paramMatcher.matches()) {
+                            MatchResult result = paramMatcher.toMatchResult();
                             block.addParam(result.group(1).trim(), result.group(2).trim());
                         }
-
                     }
                     else if ("@return".equals(matchResult.group(1)))
                     {
                         isDescription = false;
                         block.setReturnDescription(matchResult.group(2).trim());
+                    }
+                    else if (matchResult.group(1).startsWith("@"))
+                    {
+                        isDescription = false;
+                        block.addCustomParameter(matchResult.group(1).substring(1), matchResult.group(2).trim());
                     }
                 }
                 else
@@ -215,7 +229,7 @@ public class AutoComment extends AnAction {
 
     private String getName()
     {
-        return "AutoComment";
+        return "actions.AutoComment";
     }
 
     private String getIdentifierValue(OCDeclarator declarator)
