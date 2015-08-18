@@ -1,11 +1,12 @@
+package util;
 import com.intellij.openapi.actionSystem.DataConstants;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
-import com.jetbrains.cidr.lang.psi.OCAttribute;
-import com.jetbrains.cidr.lang.psi.OCMethod;
+import com.jetbrains.cidr.lang.psi.*;
+import com.jetbrains.cidr.lang.types.OCType;
 
 
 public class PsiHelper
@@ -41,6 +42,12 @@ public class PsiHelper
     public static OCMethod getCurrentMethod(DataContext dataContext)
     {
         return findMethod(getCurrentElement(dataContext));
+    }
+
+    public static String getFunctionReturnType(OCDeclaration function)
+    {
+        OCTypeElement typeElement = PsiTreeUtil.getChildOfType(function, OCTypeElement.class);
+        return typeElement.getFirstChild().getText();
     }
 
     public static SelectionModel getCurrentSelection(DataContext dataContext)

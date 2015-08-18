@@ -23,6 +23,8 @@ import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import util.PsiHelper;
+
 /**
  * Created by jp on 08/08/15.
  */
@@ -32,11 +34,12 @@ public class AutoComment extends AnAction {
     private Editor  _editor;
 
     public void actionPerformed(AnActionEvent e) {
-        final OCFunctionDeclaration function = PsiTreeUtil.getParentOfType(e.getData(PlatformDataKeys.PSI_ELEMENT), OCFunctionDeclaration.class);
+        final OCDeclaration function = PsiTreeUtil.getParentOfType(e.getData(PlatformDataKeys.PSI_ELEMENT), OCFunctionDeclaration.class);
         if (function != null)
         {
             try {
                 final OCDeclarator declaration = PsiTreeUtil.getChildOfType(function, OCDeclarator.class);
+
                 OCParameterList parameterList = PsiTreeUtil.getChildOfType(declaration, OCParameterList.class);
                 String methodName = getIdentifierValue(declaration);
                 _project = e.getData(PlatformDataKeys.PROJECT);
@@ -45,13 +48,14 @@ public class AutoComment extends AnAction {
                 // Look for an existing comment
                 String existingComment = extractMethodComment(function);
                 CommentsBlock existingBlock = null;
+                boolean hasReturnType = !("void".equals(PsiHelper.getFunctionReturnType(function)));
                 if (existingComment != null)
                 {
                     //Messages.showMessageDialog(existingComment, "Debug", null);
-                    existingBlock = parseComments(existingComment);
+                    existingBlock = parseComments(existingComment, hasReturnType);
                 }
 
-                CommentsBlock newBlock = new CommentsBlock();
+                CommentsBlock newBlock = new CommentsBlock(hasReturnType);
                 if (existingBlock != null && existingBlock.getDescription().size() > 0)
                 {
                     for (int i=0; i<existingBlock.getDescription().size();i++)
@@ -64,16 +68,21 @@ public class AutoComment extends AnAction {
                     newBlock.addDescriptionLine(String.format("<< %s description >>", methodName));
                 }
 
-                if (existingBlock != null && existingBlock.get_customInfos().size() > 0)
+                if (existingBlock != null && existingBlock.getCustomInfos().size() > 0)
                 {
-                    for (int i=0; i<existingBlock.get_customInfos().size();i++)
+                    for (int i=0; i<existingBlock.getCustomInfos().size();i++)
                     {
-                        newBlock.addCustomParameter(existingBlock.get_customInfos().get(i).getKey(), existingBlock.get_customInfos().get(i).getValue());
+                        newBlock.addCustomParameter(existingBlock.getCustomInfos().get(i).getKey(), existingBlock.getCustomInfos().get(i).getValue());
                     }
                 }
 
+                if (newBlock.HasReturnValue() && existingBlock != null && existingBlock.HasReturnValue())
+                {
+                    newBlock.setReturnDescription(existingBlock.getReturnDescription());
+                }
+
                 List<OCParameterDeclaration> parameters = PsiTreeUtil.getChildrenOfTypeAsList(parameterList, OCParameterDeclaration.class);
-                for (int i = parameters.size() -1; i >=0; i--) {
+                for (int i = 0;  i < parameters.size(); i++) {
                     OCDeclarator decl = PsiTreeUtil.getChildOfType(parameters.get(i), OCDeclarator.class);
                     String parameterName = getIdentifierValue(decl);
                     ParameterInfo ParameterInfo = null;
@@ -123,13 +132,20 @@ public class AutoComment extends AnAction {
             builder.append(newBlock.getParameters().get(i).get_description());
             builder.append("\n");
         }
+        if (newBlock.HasReturnValue())
+        {
+            builder.append(" * @return ");
+            builder.append("\t");
+            builder.append(newBlock.getReturnDescription());
+            builder.append("\n");
+        }
 
-        for(int i=0; i< newBlock.get_customInfos().size();i++)
+        for(int i=0; i< newBlock.getCustomInfos().size();i++)
         {
             builder.append(" * @");
-            builder.append(newBlock.get_customInfos().get(i).getKey());
+            builder.append(newBlock.getCustomInfos().get(i).getKey());
             builder.append("\t");
-            builder.append(newBlock.get_customInfos().get(i).getValue());
+            builder.append(newBlock.getCustomInfos().get(i).getValue());
             builder.append("\n");
         }
         builder.append("*/\n");
@@ -152,9 +168,9 @@ public class AutoComment extends AnAction {
         }, getName(), null);
     }
 
-    private CommentsBlock parseComments(String comments)
+    private CommentsBlock parseComments(String comments, boolean hasReturnDescription)
     {
-        CommentsBlock block = new CommentsBlock();
+        CommentsBlock block = new CommentsBlock(hasReturnDescription);
         boolean isDescription = true;
         String[] lines = comments.split("\n");
         Pattern regex = Pattern.compile("\\s*\\*\\s*(\\@\\S+)?(.*)");
@@ -200,7 +216,7 @@ public class AutoComment extends AnAction {
     }
 
     @Nullable
-    private String extractMethodComment(@NotNull OCFunctionDeclaration methodDeclaration)
+    private String extractMethodComment(@NotNull OCDeclaration methodDeclaration)
     {
         PsiElement firstChild = methodDeclaration.getFirstChild();
         if (firstChild != null && firstChild instanceof PsiComment)
@@ -210,7 +226,7 @@ public class AutoComment extends AnAction {
         return null;
     }
 
-    private void removeMethodComment(final OCFunctionDeclaration function) {
+    private void removeMethodComment(final OCDeclaration function) {
         CommandProcessor.getInstance().executeCommand(_project, new Runnable() {
             public void run() {
                 ApplicationManager.getApplication().runWriteAction(new Runnable() {

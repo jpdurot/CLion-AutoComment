@@ -1,17 +1,17 @@
 <idea-plugin version="2">
-  <id>com.yourcompany.unique.plugin.id</id>
-  <name>Plugin display name here</name>
-  <version>1.0</version>
-  <vendor email="support@yourcompany.com" url="http://www.yourcompany.com">YourCompany</vendor>
+  <id>com.jpdurot.clion-autocomment</id>
+  <name>AutoComment</name>
+  <version>0.2</version>
+  <!--<vendor email="support@yourcompany.com" url="http://www.yourcompany.com">YourCompany</vendor>-->
 
   <description><![CDATA[
-      Enter short description for your plugin here.<br>
-      <em>most HTML tags may be used</em>
+      Add comments automatically to your C++ methods
     ]]></description>
 
   <change-notes><![CDATA[
-      Add change notes here.<br>
-      <em>most HTML tags may be used</em>
+      - Added support for @return tag
+      - Added support for commenting function definitions as well as function declarations
+      - Fix parameter order
     ]]>
   </change-notes>
 
